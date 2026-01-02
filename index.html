@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Free Roblox 卡密分发</title>
+    <title>Free Roblox 卡密获取</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; }
         body { background: #0f172a; color: #f8fafc; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
@@ -43,13 +43,13 @@
     <div class="message" id="message-box"></div>
 
     <script>
-        // ************************** 需替换的自定义配置 **************************
-        const WORKER_API_URL = "https://roblox-auth.你的Cloudflare域名.workers.dev"; // 你的roblox-auth Worker域名
-        const LOOTLABS_LINK = "https://lootlabs.com/link/你的短链"; // 你的LootLabs广告短链
-        const PAGE_EXPIRE_SEC = 5 * 60; // 5分钟网页有效期，与Worker配置一致
-        // ***********************************************************************
+        // 已填入你的Worker域名，无需修改！
+        const WORKER_API_URL = "https://roblox-auth.check868.workers.dev";
+        // 替换为你的LootLabs短链（必填，否则5分钟后跳转失效）
+        const LOOTLABS_LINK = "https://lootlabs.com/link/你的短链"; 
+        const PAGE_EXPIRE_SEC = 5 * 60; // 5分钟网页有效期
 
-        // 核心状态变量（仅存于内存，页面关闭后重置）
+        // 核心状态变量
         let isBtnClicked = false;
         let pageId = generatePageId();
         let expireTimer = null;
@@ -69,6 +69,9 @@
             // 验证页面有效性
             try {
                 const res = await fetch(`${WORKER_API_URL}/check-page-valid?pageId=${pageId}`);
+                // 校验响应是否正常
+                if (!res.ok) throw new Error(`接口返回错误：${res.status}`);
+                
                 const data = await res.json();
                 if (!data.valid) {
                     keyContainer.innerHTML = '<span class="error">网页链接已失效！</span>';
@@ -96,16 +99,16 @@
                         return;
                     }
 
-                    // 会话级禁用按钮（永久变灰）
                     isBtnClicked = true;
                     getKeyBtn.disabled = true;
                     keyContainer.innerHTML = '<span class="tip-text">正在生成卡密...</span>';
 
-                    // 调用Worker生成卡密接口
+                    // 调用生成卡密接口
                     try {
                         const keyRes = await fetch(`${WORKER_API_URL}/generate-key?pageId=${pageId}`);
-                        const keyData = await keyRes.json();
+                        if (!keyRes.ok) throw new Error(`卡密接口错误：${keyRes.status}`);
                         
+                        const keyData = await keyRes.json();
                         if (keyData.success) {
                             keyContainer.innerHTML = `<span class="key-display" onclick="copyKey('${keyData.key}')">${keyData.key}</span>`;
                             showMessage(keyData.message, "success");
@@ -115,11 +118,13 @@
                         }
                     } catch (err) {
                         keyContainer.innerHTML = '<span class="tip-text">点击下方按钮获取卡密</span>';
-                        showMessage("卡密生成失败！请检查网络", "error");
+                        showMessage(`卡密生成失败：${err.message}`, "error");
                     }
                 });
             } catch (err) {
-                showMessage("页面初始化失败！", "error");
+                // 打印错误详情到控制台，方便排查
+                console.error("页面初始化失败详情：", err);
+                showMessage(`页面初始化失败：${err.message}`, "error");
                 getKeyBtn.disabled = true;
             }
         };
@@ -146,4 +151,3 @@
     </script>
 </body>
 </html>
-

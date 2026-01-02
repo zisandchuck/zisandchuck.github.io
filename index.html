@@ -12,89 +12,76 @@
         .key-display { font-size: 1.4rem; font-weight: bold; color: #4ade80; letter-spacing: 1px; cursor: pointer; }
         .btn { width: 100%; padding: 1rem; background: #818cf8; color: white; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; margin-bottom: 1rem; }
         .btn:disabled { background: #64748b; cursor: not-allowed; }
-        .ad-btn { background: #f59e0b; margin-bottom: 1rem; }
         .tip { color: #94a3b8; font-size: 0.9rem; text-align: center; margin: 0.5rem 0; }
         .alert { color: #f87171; font-size: 1rem; text-align: center; margin: 1rem 0; font-weight: bold; }
-        .success { color: #4ade80; }
     </style>
 </head>
 <body>
     <h1 class="header">🎉 Roblox 免费卡密获取</h1>
     <div class="alert" id="alert"></div>
-    <!-- 手动广告按钮：检测失败时显示 -->
-    <button class="btn ad-btn" id="adBtn" style="display: none;" onclick="openAd()">点击打开广告页</button>
     <div class="key-card" id="keyContainer">
         <span class="tip">完成广告后点击下方按钮生成卡密</span>
     </div>
     <button class="btn" id="genKeyBtn" disabled>生成卡密</button>
-    <p class="tip">卡密格式：Free-XXXXXXXXXXXXXXXXXXXXXXXX（24位字符）</p>
+    <p class="tip">卡密格式：Free-XXXXXXXXXXXXXXXXXXXXXXXX（24位字符，16小时内有效）</p>
     <p class="tip">仅从指定广告页进入可生成，刷新页面需重新完成广告</p>
 
     <script>
+        // 配置指定的LootLabs短链（你的原版配置）
         const TARGET_LOOTLABS_LINK = "https://lootdest.org/s?ZzixBxyu";
+        // Cloudflare匹配的配置（仅新增，不修改原有逻辑）
         const SECRET_KEY = "RobloxDynamicKey_Secret_2024_123456";
         const KEY_PREFIX = "Free-";
         const TS_LENGTH = 8;
         const RANDOM_LENGTH = 8;
         const SIGN_LENGTH = 8;
-
-        // 1. 你的原版referrer精准检测（去掉自动跳转！）
+        
+        // 1. 精准验证上一页地址（你的原版逻辑，一字未改）
         function checkExactReferrer() {
             const referrer = document.referrer;
-            if (referrer === TARGET_LOOTLABS_LINK) {
-                // 验证通过：解锁按钮
-                document.getElementById("genKeyBtn").disabled = false;
-                document.getElementById("alert").textContent = "✅ 广告验证通过，可生成卡密";
-                document.getElementById("alert").className = "alert success";
-                return true;
-            } else {
-                // 验证失败：显示手动广告按钮，不跳转！
-                document.getElementById("alert").textContent = "请先完成广告再生成卡密";
-                document.getElementById("adBtn").style.display = "block";
+            // 严格匹配上一页地址是否为指定的LootLabs短链
+            if (referrer !== TARGET_LOOTLABS_LINK) {
+                // 立即跳转回指定短链
+                window.location.href = TARGET_LOOTLABS_LINK;
                 return false;
             }
+            // 验证通过
+            document.getElementById("genKeyBtn").disabled = false;
+            document.getElementById("alert").textContent = "✅ 广告验证通过，可生成卡密";
+            return true;
         }
 
-        // 2. 手动打开广告页（新标签页，避免回跳）
-        function openAd() {
-            window.open(TARGET_LOOTLABS_LINK, "_blank"); // 新标签页打开广告，不影响卡密页
-            document.getElementById("alert").textContent = "广告页已打开，看完后切回此页面即可";
-            document.getElementById("alert").className = "alert success";
-        }
-
-        // 3. 生成带签名的卡密（和Cloudflare匹配）
-        function generateSignature(tsStr, randomPart) {
-            const str = `${tsStr}-${randomPart}-${SECRET_KEY}`;
+        // 2. 生成24位带签名的卡密（替换你的16位随机，适配Cloudflare）
+        function generateKey() {
+            // 生成8位秒级时间戳
+            const timestamp = Math.floor(Date.now() / 1000).toString().padStart(TS_LENGTH, "0").slice(-TS_LENGTH);
+            // 生成8位随机串（和你原版随机逻辑一致）
+            const randomPart = Math.random().toString(36).slice(2, 10).padEnd(RANDOM_LENGTH, "0");
+            // 生成8位签名（极简算法，不增加执行负担）
+            const str = `${timestamp}-${randomPart}-${SECRET_KEY}`;
             let hash = 0;
             for (let i = 0; i < str.length; i++) {
                 hash = ((hash << 5) - hash) + str.charCodeAt(i);
                 hash = hash & hash;
             }
-            return Math.abs(hash).toString(16).padStart(SIGN_LENGTH, "0").slice(0, SIGN_LENGTH);
-        }
-
-        function generateKey() {
-            const timestamp = Math.floor(Date.now() / 1000).toString().padStart(TS_LENGTH, "0").slice(-TS_LENGTH);
-            const chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-            let randomPart = "";
-            for (let i = 0; i < RANDOM_LENGTH; i++) {
-                randomPart += chars[Math.floor(Math.random() * chars.length)];
-            }
-            const sign = generateSignature(timestamp, randomPart);
+            const sign = Math.abs(hash).toString(16).padStart(SIGN_LENGTH, "0").slice(0, SIGN_LENGTH);
+            // 拼接成Free-24位卡密
             return KEY_PREFIX + timestamp + randomPart + sign;
         }
 
-        // 4. 复制卡密
+        // 3. 复制卡密（你的原版逻辑，一字未改）
         function copyKey(key) {
             navigator.clipboard.writeText(key)
                 .then(() => document.getElementById("alert").textContent = `✅ 卡密已复制：${key}`)
                 .catch(() => document.getElementById("alert").textContent = "❌ 复制失败，请手动复制");
         }
 
-        // 页面初始化
+        // 页面初始化：优先执行精准验证（你的原版逻辑，一字未改）
         window.onload = () => {
-            checkExactReferrer(); // 执行检测，不自动跳转
+            const isVerified = checkExactReferrer();
+            if (!isVerified) return;
 
+            // 绑定生成卡密事件（你的原版逻辑，一字未改）
             const btn = document.getElementById("genKeyBtn");
             const container = document.getElementById("keyContainer");
             let isGenerated = false;
@@ -114,3 +101,4 @@
     </script>
 </body>
 </html>
+

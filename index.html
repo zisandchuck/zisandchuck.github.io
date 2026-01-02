@@ -1,41 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Roblox 工具卡密领取</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      text-align: center;
+      background-color: #1a1a1a;
+      color: #ffffff;
+    }
+    .container {
+      background-color: #2d2d2d;
+      padding: 30px;
+      border-radius: 10px;
+    }
+    button {
+      padding: 12px 30px;
+      margin-top: 20px;
+      background-color: #7289da;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:disabled {
+      background-color: #555;
+      cursor: not-allowed;
+    }
+    .error {
+      color: #ff6b6b;
+      margin-top: 10px;
+    }
+    #code {
+      margin-top: 15px;
+      font-size: 18px;
+      letter-spacing: 2px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container" id="main" style="display:none;">
+  <h1>Roblox 工具卡密领取</h1>
+  <p>每次观看广告可获取 1 个卡密（24 小时内账号只能使用一次）</p>
+
+  <button id="btn">生成卡密</button>
+  <div id="code"></div>
+  <div class="error" id="error"></div>
+</div>
+
 <script>
-const API = "https://roblox-auth.check868.workers.dev";
+  // ===== 配置 =====
+  const AD_URL = "https://linkvertise.com/access/2615052/Pfqr63wwDqQQ";
+  const WORKER_API = "https://roblox-auth.check868.workers.dev";
 
-let pageToken = null;
+  // ===== 广告来源校验（最简单、最稳）=====
+  const ref = document.referrer || "";
 
-// 页面加载：先换 pageToken
-(async () => {
-  try {
-    const res = await fetch(API + "/page");
-    const data = await res.json();
-    if (!data.ok) throw "fail";
-    pageToken = data.pageToken;
-  } catch {
-    alert("页面初始化失败，请重新从广告进入");
-  }
-})();
-
-document.getElementById("genBtn").onclick = async () => {
-  if (!pageToken) {
-    alert("页面已过期，请重新从广告进入");
-    return;
+  if (!ref.includes("linkvertise.com")) {
+    // 不是从 Linkvertise 来的，直接跳广告
+    location.replace(AD_URL);
+  } else {
+    // 是从广告来的，放行
+    document.getElementById("main").style.display = "block";
   }
 
-  const res = await fetch(API + "/generate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ pageToken })
-  });
+  // ===== 生成卡密 =====
+  const btn = document.getElementById("btn");
+  const codeEl = document.getElementById("code");
+  const errEl = document.getElementById("error");
 
-  const data = await res.json();
-  if (!data.ok) {
-    alert(data.msg);
-    return;
-  }
+  btn.onclick = async () => {
+    btn.disabled = true;
+    errEl.textContent = "";
+    codeEl.textContent = "";
 
-  document.getElementById("codeDisplay").style.display = "block";
-  document.getElementById("codeDisplay").innerText =
-    "你的卡密：" + data.code;
-};
+    try {
+      const res = await fetch(WORKER_API + "/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
+
+      const data = await res.json();
+
+      if (!data.ok) throw new Error(data.msg || "生成失败");
+
+      codeEl.textContent = "你的卡密：" + data.code;
+
+    } catch (e) {
+      errEl.textContent = e.message || "请求失败";
+      btn.disabled = false;
+    }
+  };
 </script>
+
+</body>
+</html>
 

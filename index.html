@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roblox工具卡密领取</title>
+    <!-- 用style标签包裹CSS代码 -->
+    <style>
+body {
+  font-family: Arial, sans-serif;
+  max-width: 600px;
+  margin: 50px auto;
+  padding: 20px;
+  text-align: center;
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+.container {
+  background-color: #2d2d2d;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.5);
+}
+button {
+  padding: 12px 30px;
+  margin-top: 20px;
+  background-color: #7289da;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+}
+button:hover {
+  background-color: #677bc4;
+}
+#codeDisplay {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #3d3d3d;
+  border-radius: 5px;
+  font-size: 18px;
+  letter-spacing: 2px;
+  display: none;
+}
+.validity {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #999;
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Roblox工具卡密领取</h1>
+        <p>你已完成广告验证，点击下方按钮生成卡密（10分钟内仅可生成1次）</p>
+        <button onclick="generateCode()">点击生成卡密</button>
+        <div id="codeDisplay"></div>
+        <div class="validity">卡密使用：打开Roblox工具后输入验证</div>
+    </div>
+
+    <!-- 修复Linkvertise反绕过脚本链接 -->
+    <script src="https://cdn.linkvertise.com/cdn/anti-bypassing/script.js"></script>
+    
+    <!-- 用script标签包裹JS代码 -->
+    <script>
+// Linkvertise反绕过令牌（替换为你的令牌）
+const LV_TOKEN = "049c0533108ac041663bb4c5c0e2c0c625cb94b685ef248f62074104e4a5770e";
+// 全局常量
+const CODE_LENGTH = 8;
+const CHAR_SET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const VALID_DURATION = 600000; // 10分钟
+let lastGenerateTime = 0;
+
+// 页面加载时验证Linkvertise来源
+window.onload = function() {
+  // 初始化反绕过验证
+  if (typeof linkvertiseAntiBypassing !== 'undefined') {
+    linkvertiseAntiBypassing.init({
+      token: LV_TOKEN,
+      redirect: "https://link-center.net/2615052/voaIn7BXP7T9" // 你的Linkvertise短链
+    });
+
+    // 验证是否通过Linkvertise访问
+    if (!linkvertiseAntiBypassing.isValid()) {
+      alert("请通过正规渠道访问，正在跳转到广告页...");
+      window.location.href = "https://link-center.net/2615052/voaIn7BXP7T9";
+      return;
+    }
+  }
+};
+
+// 生成唯一卡密
+function generateRandomCode() {
+  let code = "";
+  do {
+    code = "";
+    for (let i = 0; i < CODE_LENGTH; i++) {
+      const randomIdx = Math.floor(Math.random() * CHAR_SET.length);
+      code += CHAR_SET[randomIdx];
+    }
+  } while (localStorage.getItem(`code_${code}`));
+  return code;
+}
+
+// 生成卡密主函数
+function generateCode() {
+  const now = Date.now();
+  const displayEl = document.getElementById("codeDisplay");
+
+  // 10分钟生成限制
+  if (now - lastGenerateTime < VALID_DURATION) {
+    const remain = Math.ceil((VALID_DURATION - (now - lastGenerateTime)) / 60000);
+    displayEl.style.display = "block";
+    displayEl.innerText = `请等待${remain}分钟后再生成！`;
+    return;
+  }
+
+  // 生成并存储卡密
+  const newCode = generateRandomCode();
+  localStorage.setItem(`code_${newCode}`, now);
+  lastGenerateTime = now;
+
+  // 显示卡密
+  displayEl.style.display = "block";
+  displayEl.innerText = "你的卡密：" + newCode;
+
+  // 10分钟后：卡密失效+强制跳回广告页
+  setTimeout(() => {
+    localStorage.removeItem(`code_${newCode}`);
+    window.location.href = "https://link-center.net/2615052/voaIn7BXP7T9";
+  }, VALID_DURATION);
+}
+    </script>
+</body>
+</html>

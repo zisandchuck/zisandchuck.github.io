@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <!-- 禁止iframe嵌入，防绕开广告 -->
+    <meta http-equiv="X-Frame-Options" content="DENY">
     <title>Roblox工具卡密领取</title>
-    <!-- Linkvertise反绕过脚本（direct-link基于Linkvertise，脚本通用） -->
-    <script src="https://cdn.linkvertise.com/cdn/anti-bypassing/script.js"></script>
     <style>
 body {
   font-family: Arial, sans-serif;
@@ -67,7 +67,7 @@ button:hover:not(:disabled) {
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" id="mainContainer" style="display: none;">
         <h1>Roblox工具卡密领取</h1>
         <p>你已完成广告验证，点击下方按钮生成卡密（10分钟内仅可生成1次）</p>
         <button id="generateBtn" onclick="triggerCodeGeneration()">点击生成卡密</button>
@@ -78,67 +78,36 @@ button:hover:not(:disabled) {
     </div>
 
     <script>
-// 核心配置（已替换为新短链，保留反绕过令牌）
-const LV_ANTI_BYPASS_TOKEN = "049c0533108ac041663bb4c5c0e2c0c625cb94b685ef248f62074104e4a5770e";
+// 核心配置
 const NEW_DIRECT_LINK = "https://direct-link.net/2615052/Pfqr63wwDqQQ"; // 新短链
-const VALID_DURATION = 600000; // 10分钟全局冷却/页面失效
-const BUTTON_COOLDOWN = 5000; // 点击后5秒生成冷却
-const SESSION_ID_KEY = "lv_local_session_id"; // 本地会话ID（防直接访问）
+const VALID_DURATION = 600000; // 10分钟
+const BUTTON_COOLDOWN = 5000; // 5秒冷却
 let sessionExpireTimer = null;
 
-// 生成本地随机会话ID（防缓存复用）
-function generateLocalSessionId() {
-  const chars = "0123456789abcdef";
-  let id = "";
-  for (let i = 0; i < 32; i++) {
-    id += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return id;
-}
-
-// 页面加载验证（反绕过+本地会话，无URL参数）
+// 页面加载：仅允许Linkvertise/direct-link来源访问
 window.onload = function() {
-  // 1. 反绕过验证（direct-link基于Linkvertise，脚本直接生效）
-  if (typeof linkvertiseAntiBypassing !== 'undefined') {
-    linkvertiseAntiBypassing.init({
-      token: LV_ANTI_BYPASS_TOKEN,
-      redirect: NEW_DIRECT_LINK
-    });
+  const referrer = document.referrer; // 上一页来源
+  const mainContainer = document.getElementById("mainContainer");
 
-    // 绕开广告直接访问 → 强制跳转新短链
-    if (!linkvertiseAntiBypassing.isValid()) {
-      alert("请通过正规广告渠道访问！");
-      window.location.href = NEW_DIRECT_LINK;
-      return;
-    }
-  } else {
-    // 脚本加载失败也跳转
+  // 验证条件：来源包含linkvertise/direct-link，或反绕过脚本验证通过
+  const isFromLinkvertise = referrer.includes("linkvertise.com") || referrer.includes("direct-link.net");
+  
+  // 来源验证失败 → 强制跳转新短链
+  if (!isFromLinkvertise) {
     window.location.href = NEW_DIRECT_LINK;
     return;
   }
 
-  // 2. 本地会话验证（防缓存页面复用）
-  let sessionId = localStorage.getItem(SESSION_ID_KEY);
-  let sessionExpireTime = localStorage.getItem(`session_expire_${sessionId}`);
-  
-  if (!sessionId || !sessionExpireTime || Date.now() > Number(sessionExpireTime)) {
-    sessionId = generateLocalSessionId();
-    sessionExpireTime = Date.now() + VALID_DURATION;
-    localStorage.setItem(SESSION_ID_KEY, sessionId);
-    localStorage.setItem(`session_expire_${sessionId}`, sessionExpireTime);
-  }
+  // 验证通过，显示卡密页面
+  mainContainer.style.display = "block";
 
-  // 3. 启动10分钟页面倒计时
-  startExpireCountdown(Number(sessionExpireTime));
+  // 启动10分钟页面倒计时
+  const expireTime = Date.now() + VALID_DURATION;
+  startExpireCountdown(expireTime);
 
-  // 4. 10分钟后自动跳转+清除记录
+  // 10分钟后自动跳转+清除记录
   sessionExpireTimer = setTimeout(() => {
-    localStorage.removeItem(SESSION_ID_KEY);
-    localStorage.removeItem(`session_expire_${sessionId}`);
     localStorage.removeItem("last_generate_time");
-    if (typeof linkvertiseAntiBypassing !== 'undefined') {
-      linkvertiseAntiBypassing.invalidate();
-    }
     window.location.href = NEW_DIRECT_LINK;
   }, VALID_DURATION);
 };
@@ -150,7 +119,7 @@ function triggerCodeGeneration() {
   const now = Date.now();
   const lastGenTime = Number(localStorage.getItem("last_generate_time")) || 0;
 
-  // 先校验10分钟全局冷却
+  // 10分钟全局冷却校验
   if (now - lastGenTime < VALID_DURATION) {
     const remain = Math.ceil((VALID_DURATION - (now - lastGenTime)) / 60000);
     const displayEl = document.getElementById("codeDisplay");
@@ -170,7 +139,7 @@ function triggerCodeGeneration() {
     buttonCooldownEl.innerText = `卡密生成中... 剩余${remainingSeconds}秒`;
     if (remainingSeconds <= 0) {
       clearInterval(cooldownInterval);
-      generateCode(); // 冷却结束生成卡密
+      generateCode();
       generateBtn.disabled = false;
       buttonCooldownEl.style.display = "none";
     }
@@ -203,7 +172,7 @@ function generateRandomCode() {
   return code;
 }
 
-// 页面10分钟有效期倒计时
+// 页面10分钟倒计时
 function startExpireCountdown(expireTime) {
   const countdownEl = document.getElementById("countdown");
   const update = () => {

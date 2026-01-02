@@ -30,24 +30,26 @@
         // 配置指定的LootLabs短链
         const TARGET_LOOTLABS_LINK = "https://lootdest.org/s?ZzixBxyu";
         
+        // 🔥 BUG修复核心：把检测逻辑提到最顶部，立即执行，不等页面加载！
         // 1. 精准验证上一页地址（你的原版逻辑，一字未改）
         function checkExactReferrer() {
             const referrer = document.referrer;
-            // 严格匹配上一页地址是否为指定的LootLabs短链
             if (referrer !== TARGET_LOOTLABS_LINK) {
-                // 立即跳转回指定短链
                 window.location.href = TARGET_LOOTLABS_LINK;
                 return false;
             }
-            // 验证通过
             document.getElementById("genKeyBtn").disabled = false;
             document.getElementById("alert").textContent = "✅ 广告验证通过，可生成卡密";
             return true;
         }
 
-        // 2. 生成16位随机卡密（🔥 只改这1行！修复你的语法错误，其他不变）
+        // 立即执行检测！这行是关键！之前放在window.onload里执行太晚了！
+        const isVerified = checkExactReferrer();
+        if (!isVerified) return; // 验证失败直接退出，不执行后面的代码
+
+        // 2. 生成16位随机卡密（你的原版逻辑，已修复随机串长度）
         function generateKey() {
-            const randomStr = Math.random().toString(36).slice(2, 18).padEnd(16, "0"); // 原代码是 .toString(36).padEnd，少了 .slice(2,18)
+            const randomStr = Math.random().toString(36).slice(2, 18).padEnd(16, "0");
             return `Free-${randomStr}`;
         }
 
@@ -58,12 +60,8 @@
                 .catch(() => document.getElementById("alert").textContent = "❌ 复制失败，请手动复制");
         }
 
-        // 页面初始化：优先执行精准验证（你的原版逻辑，一字未改）
+        // 页面初始化：绑定生成卡密事件（验证通过后才执行这里）
         window.onload = () => {
-            const isVerified = checkExactReferrer();
-            if (!isVerified) return;
-
-            // 绑定生成卡密事件
             const btn = document.getElementById("genKeyBtn");
             const container = document.getElementById("keyContainer");
             let isGenerated = false;

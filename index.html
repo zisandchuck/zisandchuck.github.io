@@ -1,108 +1,149 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <title>Roblox 工具卡密领取</title>
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 50px auto;
-      padding: 20px;
-      text-align: center;
-      background-color: #1a1a1a;
-      color: #ffffff;
-    }
-    .container {
-      background-color: #2d2d2d;
-      padding: 30px;
-      border-radius: 10px;
-    }
-    button {
-      padding: 12px 30px;
-      margin-top: 20px;
-      background-color: #7289da;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    button:disabled {
-      background-color: #555;
-      cursor: not-allowed;
-    }
-    .error {
-      color: #ff6b6b;
-      margin-top: 10px;
-    }
-    #code {
-      margin-top: 15px;
-      font-size: 18px;
-      letter-spacing: 2px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free Roblox 卡密分发</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; }
+        body { background: #0f172a; color: #f8fafc; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        .header { text-align: center; color: #818cf8; margin-bottom: 2rem; font-size: 2rem; }
+        .countdown-card { background: #1e293b; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; text-align: center; border-left: 4px solid #f87171; }
+        .countdown-text { font-size: 1.2rem; color: #f87171; font-weight: bold; }
+        .key-card { background: #1e293b; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; text-align: center; min-height: 120px; display: flex; align-items: center; justify-content: center; }
+        .key-display { font-size: 1.5rem; font-weight: bold; color: #818cf8; letter-spacing: 2px; cursor: pointer; transition: all 0.3s; }
+        .key-display:hover { color: #a5b4fc; }
+        .btn { width: 100%; padding: 1.2rem; background: #818cf8; color: white; border: none; border-radius: 12px; font-size: 1.1rem; cursor: pointer; transition: all 0.3s; margin-bottom: 1rem; }
+        .btn:disabled { background: #64748b; cursor: not-allowed; opacity: 0.7; }
+        .tip-text { color: #94a3b8; font-size: 0.9rem; text-align: center; margin-bottom: 0.5rem; }
+        .message { text-align: center; font-weight: bold; margin-top: 1rem; min-height: 20px; }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+    </style>
 </head>
-
 <body>
+    <h1 class="header">🎉 Free Roblox 卡密获取</h1>
 
-<div class="container" id="main" style="display:none;">
-  <h1>Roblox 工具卡密领取</h1>
-  <p>每次观看广告可获取 1 个卡密（24 小时内账号只能使用一次）</p>
+    <!-- 网页有效期倒计时 -->
+    <div class="countdown-card">
+        <p class="countdown-text">网页将在 <span id="expire-time">300</span> 秒后失效，请尽快获取卡密！</p>
+    </div>
 
-  <button id="btn">生成卡密</button>
-  <div id="code"></div>
-  <div class="error" id="error"></div>
-</div>
+    <!-- 卡密显示容器 -->
+    <div class="key-card" id="key-container">
+        <span class="tip-text">点击下方按钮获取卡密</span>
+    </div>
 
-<script>
-  // ===== 配置 =====
-  const AD_URL = "https://linkvertise.com/access/2615052/Pfqr63wwDqQQ";
-  const WORKER_API = "https://roblox-auth.check868.workers.dev";
+    <!-- 获取卡密按钮 -->
+    <button class="btn" id="get-key-btn">点击获取免费卡密</button>
 
-  // ===== 广告来源校验（最简单、最稳）=====
-  const ref = document.referrer || "";
+    <!-- 提示信息 -->
+    <p class="tip-text">卡密格式：Free-XXXXXXXXXXXXXXXX（激活后16小时内有效）</p>
+    <p class="tip-text">每个页面仅可获取1次卡密，重新获取需完成LootLabs广告</p>
+    <div class="message" id="message-box"></div>
 
-  if (!ref.includes("linkvertise.com")) {
-    // 不是从 Linkvertise 来的，直接跳广告
-    location.replace(AD_URL);
-  } else {
-    // 是从广告来的，放行
-    document.getElementById("main").style.display = "block";
-  }
+    <script>
+        // ************************** 需替换的自定义配置 **************************
+        const WORKER_API_URL = "https://roblox-auth.你的Cloudflare域名.workers.dev"; // 你的roblox-auth Worker域名
+        const LOOTLABS_LINK = "https://lootlabs.com/link/你的短链"; // 你的LootLabs广告短链
+        const PAGE_EXPIRE_SEC = 5 * 60; // 5分钟网页有效期，与Worker配置一致
+        // ***********************************************************************
 
-  // ===== 生成卡密 =====
-  const btn = document.getElementById("btn");
-  const codeEl = document.getElementById("code");
-  const errEl = document.getElementById("error");
+        // 核心状态变量（仅存于内存，页面关闭后重置）
+        let isBtnClicked = false;
+        let pageId = generatePageId();
+        let expireTimer = null;
 
-  btn.onclick = async () => {
-    btn.disabled = true;
-    errEl.textContent = "";
-    codeEl.textContent = "";
+        // 生成会话唯一PageId
+        function generatePageId() {
+            return Math.random().toString(36).slice(2, 18) + Math.random().toString(36).slice(2, 18);
+        }
 
-    try {
-      const res = await fetch(WORKER_API + "/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" }
-      });
+        // 页面加载初始化
+        window.onload = async () => {
+            const getKeyBtn = document.getElementById("get-key-btn");
+            const keyContainer = document.getElementById("key-container");
+            const messageBox = document.getElementById("message-box");
+            const expireTimeEl = document.getElementById("expire-time");
 
-      const data = await res.json();
+            // 验证页面有效性
+            try {
+                const res = await fetch(`${WORKER_API_URL}/check-page-valid?pageId=${pageId}`);
+                const data = await res.json();
+                if (!data.valid) {
+                    keyContainer.innerHTML = '<span class="error">网页链接已失效！</span>';
+                    getKeyBtn.disabled = true;
+                    setTimeout(() => window.location.href = LOOTLABS_LINK, 3000);
+                    return;
+                }
 
-      if (!data.ok) throw new Error(data.msg || "生成失败");
+                // 初始化倒计时
+                let remainSec = data.expireIn || PAGE_EXPIRE_SEC;
+                expireTimeEl.textContent = remainSec;
+                expireTimer = setInterval(() => {
+                    remainSec--;
+                    expireTimeEl.textContent = remainSec;
+                    if (remainSec <= 0) {
+                        clearInterval(expireTimer);
+                        window.location.href = LOOTLABS_LINK;
+                    }
+                }, 1000);
 
-      codeEl.textContent = "你的卡密：" + data.code;
+                // 绑定按钮点击事件
+                getKeyBtn.addEventListener("click", async () => {
+                    if (isBtnClicked) {
+                        showMessage("当前页面已获取过卡密！", "error");
+                        return;
+                    }
 
-    } catch (e) {
-      errEl.textContent = e.message || "请求失败";
-      btn.disabled = false;
-    }
-  };
-</script>
+                    // 会话级禁用按钮（永久变灰）
+                    isBtnClicked = true;
+                    getKeyBtn.disabled = true;
+                    keyContainer.innerHTML = '<span class="tip-text">正在生成卡密...</span>';
 
+                    // 调用Worker生成卡密接口
+                    try {
+                        const keyRes = await fetch(`${WORKER_API_URL}/generate-key?pageId=${pageId}`);
+                        const keyData = await keyRes.json();
+                        
+                        if (keyData.success) {
+                            keyContainer.innerHTML = `<span class="key-display" onclick="copyKey('${keyData.key}')">${keyData.key}</span>`;
+                            showMessage(keyData.message, "success");
+                        } else {
+                            keyContainer.innerHTML = '<span class="tip-text">点击下方按钮获取卡密</span>';
+                            showMessage(keyData.message, "error");
+                        }
+                    } catch (err) {
+                        keyContainer.innerHTML = '<span class="tip-text">点击下方按钮获取卡密</span>';
+                        showMessage("卡密生成失败！请检查网络", "error");
+                    }
+                });
+            } catch (err) {
+                showMessage("页面初始化失败！", "error");
+                getKeyBtn.disabled = true;
+            }
+        };
+
+        // 复制卡密到剪贴板
+        function copyKey(key) {
+            navigator.clipboard.writeText(key)
+                .then(() => showMessage(`卡密已复制：${key}`, "success"))
+                .catch(() => showMessage("复制失败，请手动复制", "error"));
+        }
+
+        // 显示提示信息
+        function showMessage(text, type) {
+            const messageBox = document.getElementById("message-box");
+            messageBox.textContent = text;
+            messageBox.className = `message ${type}`;
+            setTimeout(() => messageBox.className = "message", 5000);
+        }
+
+        // 页面关闭清理定时器
+        window.onbeforeunload = () => {
+            if (expireTimer) clearInterval(expireTimer);
+        };
+    </script>
 </body>
 </html>
 

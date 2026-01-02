@@ -1,112 +1,115 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Roblox 工具卡密领取</title>
 
   <style>
     body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 50px auto;
-      padding: 20px;
-      text-align: center;
-      background-color: #1a1a1a;
-      color: #ffffff;
+      background:#1a1a1a;
+      color:#fff;
+      font-family:Arial, sans-serif;
+      max-width:600px;
+      margin:60px auto;
+      padding:20px;
+      text-align:center;
     }
-    .container {
-      background-color: #2d2d2d;
-      padding: 30px;
-      border-radius: 10px;
+    .box {
+      background:#2d2d2d;
+      padding:30px;
+      border-radius:10px;
     }
     button {
-      padding: 12px 30px;
-      margin-top: 20px;
-      background-color: #7289da;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      cursor: pointer;
+      padding:12px 28px;
+      background:#7289da;
+      color:#fff;
+      border:none;
+      border-radius:6px;
+      font-size:16px;
+      cursor:pointer;
     }
     button:disabled {
-      background-color: #555;
+      background:#555;
     }
     #code {
-      margin-top: 20px;
-      padding: 15px;
-      background-color: #3d3d3d;
-      border-radius: 5px;
-      font-size: 18px;
-      display: none;
+      margin-top:20px;
+      font-size:18px;
+      letter-spacing:2px;
+      background:#3a3a3a;
+      padding:12px;
+      border-radius:6px;
+      display:none;
     }
-    .error {
-      color: #ff6b6b;
-      margin-top: 10px;
+    #msg {
+      margin-top:12px;
+      color:#ff6b6b;
+    }
+    #time {
+      margin-top:10px;
+      color:#aaa;
+      font-size:14px;
     }
   </style>
 </head>
 
 <body>
-<div class="container">
-  <h1>Roblox 工具卡密领取</h1>
-  <p>观看广告后可获取 1 个卡密（24 小时内账号仅一次）</p>
+<div class="box">
+  <h2>Roblox 工具卡密领取</h2>
+  <p>每次观看广告可获取 1 个卡密<br>（24 小时内账号仅能使用一次）</p>
 
   <button id="btn">生成卡密</button>
   <div id="code"></div>
-  <div class="error" id="err"></div>
+  <div id="msg"></div>
+  <div id="time"></div>
 </div>
 
 <script>
-  const API = "https://roblox-auth.check868.workers.dev";
-  const btn = document.getElementById("btn");
-  const codeEl = document.getElementById("code");
-  const errEl = document.getElementById("err");
+const API = "https://roblox-auth.check868.workers.dev";
+const PAGE_LIFE = 10 * 60 * 1000; // 10 分钟
 
-  // 读取 adToken
-  const params = new URLSearchParams(location.search);
-  const adToken = params.get("ad");
+const btn = document.getElementById("btn");
+const codeEl = document.getElementById("code");
+const msgEl = document.getElementById("msg");
+const timeEl = document.getElementById("time");
 
-  // 页面 10 分钟有效
-  const PAGE_EXPIRE = 10 * 60 * 1000;
-  const enterTime = Date.now();
-
-  if (!adToken) {
-    errEl.innerText = "广告验证失败，请重新观看广告进入";
+// 页面时间窗（不依赖广告参数）
+const start = Date.now();
+const timer = setInterval(() => {
+  const left = PAGE_LIFE - (Date.now() - start);
+  if (left <= 0) {
     btn.disabled = true;
+    timeEl.innerText = "页面已失效，请重新观看广告进入";
+    clearInterval(timer);
+  } else {
+    const m = Math.floor(left / 60000);
+    const s = Math.floor(left / 1000) % 60;
+    timeEl.innerText = `页面剩余时间：${m}:${String(s).padStart(2,"0")}`;
   }
+}, 1000);
 
-  btn.onclick = async () => {
-    if (Date.now() - enterTime > PAGE_EXPIRE) {
-      errEl.innerText = "页面已过期，请重新观看广告";
-      btn.disabled = true;
-      return;
-    }
+btn.onclick = async () => {
+  btn.disabled = true;
+  msgEl.innerText = "";
+  codeEl.style.display = "none";
 
-    btn.disabled = true;
-    errEl.innerText = "";
+  try {
+    const r = await fetch(API + "/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    });
 
-    try {
-      const res = await fetch(API + "/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adToken })
-      });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.msg || "生成失败");
 
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.msg);
+    codeEl.style.display = "block";
+    codeEl.innerText = d.code;
 
-      codeEl.style.display = "block";
-      codeEl.innerText = "你的卡密：" + data.code;
-
-    } catch (e) {
-      errEl.innerText = e.message || "生成失败";
-      btn.disabled = false;
-    }
-  };
+  } catch (e) {
+    msgEl.innerText = e.message;
+    btn.disabled = false;
+  }
+};
 </script>
 </body>
 </html>

@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Roblox工具卡密领取</title>
-    <!-- 用style标签包裹CSS代码 -->
+    <!-- 引入Linkvertise反绕过脚本 -->
+    <script src="https://cdn.linkvertise.com/cdn/anti-bypassing/script.js"></script>
     <style>
 body {
   font-family: Arial, sans-serif;
@@ -43,8 +44,13 @@ button:hover {
   letter-spacing: 2px;
   display: none;
 }
-.validity {
+.countdown {
   margin-top: 10px;
+  font-size: 14px;
+  color: #7289da;
+}
+.validity {
+  margin-top: 5px;
   font-size: 14px;
   color: #999;
 }
@@ -56,46 +62,94 @@ button:hover {
         <p>你已完成广告验证，点击下方按钮生成卡密（10分钟内仅可生成1次）</p>
         <button onclick="generateCode()">点击生成卡密</button>
         <div id="codeDisplay"></div>
-        <div class="validity">卡密使用：打开Roblox工具后输入验证</div>
+        <div class="countdown" id="countdown"></div>
+        <div class="validity">卡密使用：打开Roblox工具后输入验证 | 页面10分钟后失效</div>
     </div>
 
-    <!-- 修复Linkvertise反绕过脚本链接 -->
-    <script src="https://cdn.linkvertise.com/cdn/anti-bypassing/script.js"></script>
-    
-    <!-- 用script标签包裹JS代码 -->
     <script>
-// Linkvertise反绕过令牌（替换为你的令牌）
-const LV_TOKEN = "049c0533108ac041663bb4c5c0e2c0c625cb94b685ef248f62074104e4a5770e";
-// 全局常量
-const CODE_LENGTH = 8;
-const CHAR_SET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-const VALID_DURATION = 600000; // 10分钟
-let lastGenerateTime = 0;
+// 核心配置（已全部更新为新短链+反绕过令牌）
+const LV_ANTI_BYPASS_TOKEN = "049c0533108ac041663bb4c5c0e2c0c625cb94b685ef248f62074104e4a5770e"; // 反绕过令牌
+const LV_SESSION_PARAM = "lv_session"; // Linkvertise会话参数
+const LV_NEW_SHORT_LINK = "https://link-center.net/2615052/eOL0TcOnzjnQ"; // 新短链
+const VALID_DURATION = 600000; // 10分钟（毫秒）
+let sessionExpireTimer = null; // 会话过期定时器
 
-// 页面加载时验证Linkvertise来源
+// 页面加载：反绕过验证+Linkvertise来源验证+10分钟倒计时
 window.onload = function() {
-  // 初始化反绕过验证
+  // 1. 初始化Linkvertise反绕过验证
   if (typeof linkvertiseAntiBypassing !== 'undefined') {
     linkvertiseAntiBypassing.init({
-      token: LV_TOKEN,
-      redirect: "https://link-center.net/2615052/voaIn7BXP7T9" // 你的Linkvertise短链
+      token: LV_ANTI_BYPASS_TOKEN,
+      redirect: LV_NEW_SHORT_LINK // 新短链
     });
 
-    // 验证是否通过Linkvertise访问
+    // 反绕过验证失败 → 强制跳回新短链广告页
     if (!linkvertiseAntiBypassing.isValid()) {
-      alert("请通过正规渠道访问，正在跳转到广告页...");
-      window.location.href = "https://link-center.net/2615052/voaIn7BXP7T9";
+      alert("请通过正规广告渠道访问！");
+      window.location.href = LV_NEW_SHORT_LINK;
       return;
     }
   }
+
+  // 2. 验证Linkvertise会话参数
+  const urlParams = new URLSearchParams(window.location.search);
+  const lvSession = urlParams.get(LV_SESSION_PARAM);
+  if (!lvSession) {
+    window.location.href = LV_NEW_SHORT_LINK;
+    return;
+  }
+
+  // 3. 检查会话是否已过期
+  const sessionExpireTime = localStorage.getItem(`lv_session_expire_${lvSession}`);
+  if (sessionExpireTime && Date.now() > Number(sessionExpireTime)) {
+    alert("广告会话已过期，请重新看广告！");
+    window.location.href = LV_NEW_SHORT_LINK;
+    return;
+  }
+
+  // 4. 初始化/恢复10分钟会话有效期
+  const expireTime = sessionExpireTime ? Number(sessionExpireTime) : Date.now() + VALID_DURATION;
+  if (!sessionExpireTime) {
+    localStorage.setItem(`lv_session_expire_${lvSession}`, expireTime);
+  }
+  startExpireCountdown(expireTime); // 启动倒计时
+
+  // 5. 10分钟后自动跳回新短链+清除会话
+  sessionExpireTimer = setTimeout(() => {
+    localStorage.removeItem(`lv_session_expire_${lvSession}`);
+    localStorage.removeItem("last_generate_time");
+    // 反绕过验证：标记会话失效
+    if (typeof linkvertiseAntiBypassing !== 'undefined') {
+      linkvertiseAntiBypassing.invalidate();
+    }
+    window.location.href = LV_NEW_SHORT_LINK;
+  }, VALID_DURATION);
 };
+
+// 启动会话过期倒计时（页面显示剩余时间）
+function startExpireCountdown(expireTime) {
+  const countdownEl = document.getElementById("countdown");
+  const updateCountdown = () => {
+    const remaining = Math.ceil((expireTime - Date.now()) / 1000);
+    if (remaining <= 0) {
+      countdownEl.innerText = "页面即将失效，请尽快生成卡密！";
+      return;
+    }
+    const minutes = Math.floor(remaining / 60);
+    const seconds = remaining % 60;
+    countdownEl.innerText = `页面剩余有效时间：${minutes}分${seconds.toString().padStart(2, '0')}秒`;
+  };
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+}
 
 // 生成唯一卡密
 function generateRandomCode() {
   let code = "";
+  const CHAR_SET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   do {
     code = "";
-    for (let i = 0; i < CODE_LENGTH; i++) {
+    for (let i = 0; i < 8; i++) {
       const randomIdx = Math.floor(Math.random() * CHAR_SET.length);
       code += CHAR_SET[randomIdx];
     }
@@ -103,34 +157,34 @@ function generateRandomCode() {
   return code;
 }
 
-// 生成卡密主函数
+// 生成卡密主函数（含10分钟生成限制）
 function generateCode() {
   const now = Date.now();
   const displayEl = document.getElementById("codeDisplay");
+  const lastGenTime = Number(localStorage.getItem("last_generate_time")) || 0;
 
   // 10分钟生成限制
-  if (now - lastGenerateTime < VALID_DURATION) {
-    const remain = Math.ceil((VALID_DURATION - (now - lastGenerateTime)) / 60000);
+  if (now - lastGenTime < VALID_DURATION) {
+    const remain = Math.ceil((VALID_DURATION - (now - lastGenTime)) / 60000);
     displayEl.style.display = "block";
     displayEl.innerText = `请等待${remain}分钟后再生成！`;
     return;
   }
 
-  // 生成并存储卡密
+  // 生成并存储
   const newCode = generateRandomCode();
   localStorage.setItem(`code_${newCode}`, now);
-  lastGenerateTime = now;
+  localStorage.setItem("last_generate_time", now);
 
   // 显示卡密
   displayEl.style.display = "block";
   displayEl.innerText = "你的卡密：" + newCode;
-
-  // 10分钟后：卡密失效+强制跳回广告页
-  setTimeout(() => {
-    localStorage.removeItem(`code_${newCode}`);
-    window.location.href = "https://link-center.net/2615052/voaIn7BXP7T9";
-  }, VALID_DURATION);
 }
+
+// 页面关闭时清除定时器
+window.onunload = function() {
+  if (sessionExpireTimer) clearTimeout(sessionExpireTimer);
+};
     </script>
 </body>
 </html>

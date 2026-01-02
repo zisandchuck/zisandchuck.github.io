@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <title>Roblox工具卡密领取</title>
-    <!-- 引入Linkvertise反绕过脚本 -->
     <script src="https://cdn.linkvertise.com/cdn/anti-bypassing/script.js"></script>
     <style>
 body {
@@ -67,124 +67,69 @@ button:hover {
     </div>
 
     <script>
-// 核心配置（已全部更新为新短链+反绕过令牌）
-const LV_ANTI_BYPASS_TOKEN = "049c0533108ac041663bb4c5c0e2c0c625cb94b685ef248f62074104e4a5770e"; // 反绕过令牌
-const LV_SESSION_PARAM = "lv_session"; // Linkvertise会话参数
-const LV_NEW_SHORT_LINK = "https://link-center.net/2615052/eOL0TcOnzjnQ"; // 新短链
-const VALID_DURATION = 600000; // 10分钟（毫秒）
-let sessionExpireTimer = null; // 会话过期定时器
+const LV_ANTI_BYPASS_TOKEN = "049c0533108ac041663bb4c5c0e2c0c625cb94b685ef248f62074104e4a5770e";
+const LV_SESSION_PARAM = "lv_session";
+const LV_NEW_SHORT_LINK = "https://link-center.net/2615052/eOL0TcOnzjnQ";
+const VALID_DURATION = 600000;
+let sessionExpireTimer = null;
 
-// 页面加载：反绕过验证+Linkvertise来源验证+10分钟倒计时
 window.onload = function() {
-  // 1. 初始化Linkvertise反绕过验证
+  // 反绕过验证+延迟500ms，解决秒跳
   if (typeof linkvertiseAntiBypassing !== 'undefined') {
-    linkvertiseAntiBypassing.init({
-      token: LV_ANTI_BYPASS_TOKEN,
-      redirect: LV_NEW_SHORT_LINK // 新短链
-    });
-
-    // 反绕过验证失败 → 强制跳回新短链广告页
-    if (!linkvertiseAntiBypassing.isValid()) {
-      alert("请通过正规广告渠道访问！");
-      window.location.href = LV_NEW_SHORT_LINK;
-      return;
-    }
+    linkvertiseAntiBypassing.init({token: LV_ANTI_BYPASS_TOKEN,redirect: LV_NEW_SHORT_LINK});
+    setTimeout(() => {
+      if (!linkvertiseAntiBypassing.isValid()) {
+        alert("请通过正规广告渠道访问！");
+        window.location.href = LV_NEW_SHORT_LINK;
+        return;
+      }
+    }, 500);
   }
 
-  // 2. 验证Linkvertise会话参数
+  // 验证会话参数
   const urlParams = new URLSearchParams(window.location.search);
   const lvSession = urlParams.get(LV_SESSION_PARAM);
-  if (!lvSession) {
-    window.location.href = LV_NEW_SHORT_LINK;
-    return;
-  }
+  if (!lvSession) {window.location.href = LV_NEW_SHORT_LINK;return;}
 
-  // 3. 检查会话是否已过期
-  const sessionExpireTime = localStorage.getItem(`lv_session_expire_${lvSession}`);
-  if (sessionExpireTime && Date.now() > Number(sessionExpireTime)) {
-    alert("广告会话已过期，请重新看广告！");
-    window.location.href = LV_NEW_SHORT_LINK;
-    return;
-  }
+  // 初始化10分钟有效期+倒计时
+  const expireTime = Date.now() + VALID_DURATION;
+  localStorage.setItem(`lv_session_expire_${lvSession}`, expireTime);
+  startExpireCountdown(expireTime);
 
-  // 4. 初始化/恢复10分钟会话有效期
-  const expireTime = sessionExpireTime ? Number(sessionExpireTime) : Date.now() + VALID_DURATION;
-  if (!sessionExpireTime) {
-    localStorage.setItem(`lv_session_expire_${lvSession}`, expireTime);
-  }
-  startExpireCountdown(expireTime); // 启动倒计时
-
-  // 5. 10分钟后自动跳回新短链+清除会话
+  // 10分钟后自动跳转+清除记录
   sessionExpireTimer = setTimeout(() => {
     localStorage.removeItem(`lv_session_expire_${lvSession}`);
     localStorage.removeItem("last_generate_time");
-    // 反绕过验证：标记会话失效
-    if (typeof linkvertiseAntiBypassing !== 'undefined') {
-      linkvertiseAntiBypassing.invalidate();
-    }
+    if (typeof linkvertiseAntiBypassing !== 'undefined') linkvertiseAntiBypassing.invalidate();
     window.location.href = LV_NEW_SHORT_LINK;
   }, VALID_DURATION);
 };
 
-// 启动会话过期倒计时（页面显示剩余时间）
 function startExpireCountdown(expireTime) {
   const countdownEl = document.getElementById("countdown");
-  const updateCountdown = () => {
-    const remaining = Math.ceil((expireTime - Date.now()) / 1000);
-    if (remaining <= 0) {
-      countdownEl.innerText = "页面即将失效，请尽快生成卡密！";
-      return;
-    }
-    const minutes = Math.floor(remaining / 60);
-    const seconds = remaining % 60;
-    countdownEl.innerText = `页面剩余有效时间：${minutes}分${seconds.toString().padStart(2, '0')}秒`;
+  const update = () => {
+    const remain = Math.ceil((expireTime - Date.now())/1000);
+    countdownEl.innerText = remain<=0?"页面即将失效！":`剩余有效时间：${Math.floor(remain/60)}分${(remain%60).toString().padStart(2,'0')}秒`;
   };
-  updateCountdown();
-  setInterval(updateCountdown, 1000);
+  update();setInterval(update,1000);
 }
 
-// 生成唯一卡密
 function generateRandomCode() {
-  let code = "";
-  const CHAR_SET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  do {
-    code = "";
-    for (let i = 0; i < 8; i++) {
-      const randomIdx = Math.floor(Math.random() * CHAR_SET.length);
-      code += CHAR_SET[randomIdx];
-    }
-  } while (localStorage.getItem(`code_${code}`));
+  let code="";const CHAR_SET="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  do{code="";for(let i=0;i<8;i++)code+=CHAR_SET[Math.floor(Math.random()*CHAR_SET.length)];}while(localStorage.getItem(`code_${code}`));
   return code;
 }
 
-// 生成卡密主函数（含10分钟生成限制）
 function generateCode() {
-  const now = Date.now();
-  const displayEl = document.getElementById("codeDisplay");
-  const lastGenTime = Number(localStorage.getItem("last_generate_time")) || 0;
-
-  // 10分钟生成限制
-  if (now - lastGenTime < VALID_DURATION) {
-    const remain = Math.ceil((VALID_DURATION - (now - lastGenTime)) / 60000);
-    displayEl.style.display = "block";
-    displayEl.innerText = `请等待${remain}分钟后再生成！`;
-    return;
-  }
-
-  // 生成并存储
-  const newCode = generateRandomCode();
-  localStorage.setItem(`code_${newCode}`, now);
-  localStorage.setItem("last_generate_time", now);
-
-  // 显示卡密
-  displayEl.style.display = "block";
-  displayEl.innerText = "你的卡密：" + newCode;
+  const now=Date.now(),el=document.getElementById("codeDisplay"),last=Number(localStorage.getItem("last_generate_time"))||0;
+  if(now-last<VALID_DURATION){el.style.display="block";el.innerText=`请等${Math.ceil((VALID_DURATION-(now-last))/60000)}分钟`;return;}
+  const code=generateRandomCode();
+  localStorage.setItem(`code_${code}`,now);localStorage.setItem("last_generate_time",now);
+  el.style.display="block";el.innerText="你的卡密："+code;
 }
 
-// 页面关闭时清除定时器
-window.onunload = function() {
-  if (sessionExpireTimer) clearTimeout(sessionExpireTimer);
-};
+window.onunload=()=>{if(sessionExpireTimer)clearTimeout(sessionExpireTimer);};
     </script>
 </body>
 </html>
+

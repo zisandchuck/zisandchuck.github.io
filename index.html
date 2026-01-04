@@ -1,17 +1,210 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>跳转中...</title>
-    <script>
-        // 访问主站直接跳广告
-        window.location.href = "https://lootdest.org/s?ZzixBxyu";
-    </script>
+    <title>Roblox Key System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .step-container {
+            display: none;
+            background: #2d2d2d;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .step-container.active {
+            display: block;
+        }
+        h1 {
+            color: #4ade80;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        a {
+            display: inline-block;
+            background: #3b82f6;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            margin-bottom: 15px;
+        }
+        button {
+            background: #10b981;
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+        }
+        #key-display {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 18px;
+            word-break: break-all;
+            color: #4ade80;
+        }
+        .error提示 {
+            color: #ef4444;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
 </head>
 <body>
-    <!-- 备用跳转，防止脚本失效 -->
-    <meta http-equiv="refresh" content="0;url=https://lootdest.org/s?ZzixBxyu">
+    <!-- 步骤1：Lootslab广告 -->
+    <div id="step1" class="step-container active">
+        <h1>步骤1：完成Lootslab广告验证</h1>
+        <a id="ad1-link" href="#">点击打开Lootslab广告</a>
+        <br>
+        <button onclick="checkStep(1)">校验广告完成状态</button>
+        <div class="error提示" id="error1"></div>
+    </div>
+
+    <!-- 步骤2：Linkvertise广告 -->
+    <div id="step2" class="step-container">
+        <h1>步骤2：完成Linkvertise广告验证</h1>
+        <a id="ad2-link" href="#">点击打开Linkvertise广告</a>
+        <br>
+        <button onclick="checkStep(2)">校验广告完成状态</button>
+        <div class="error提示" id="error2"></div>
+    </div>
+
+    <!-- 步骤3：Linkvertise广告 -->
+    <div id="step3" class="step-container">
+        <h1>步骤3：完成Linkvertise广告验证</h1>
+        <a id="ad3-link" href="#">点击打开Linkvertise广告</a>
+        <br>
+        <button onclick="checkStep(3)">校验广告完成状态</button>
+        <div class="error提示" id="error3"></div>
+    </div>
+
+    <!-- 卡密展示区域 -->
+    <div id="key-display"></div>
+
+    <script>
+        // 配置项 - 替换为你的实际地址
+        const WORKERS_URL = "https://r.check868.workers.dev"; // 你的Workers域名
+        const LOOTSLAB_AD_URL = "你的Lootslab广告链接"; // Step1的Lootslab广告链接
+        const LINKVERTISE_AD2_URL = "你的Linkvertise Step2广告链接"; // Step2的Linkvertise广告链接
+        const LINKVERTISE_AD3_URL = "你的Linkvertise Step3广告链接"; // Step3的Linkvertise广告链接
+        const PAGES_URL = "你的Pages域名"; // 你的Cloudflare Pages域名（如xxx.pages.dev）
+
+        // 获取设备HWID（浏览器指纹，替代简单随机数）
+        function getHWID() {
+            if (localStorage.getItem("hwid")) {
+                return localStorage.getItem("hwid");
+            }
+            // 生成简单指纹（生产环境建议用fingerprintjs）
+            const hwid = Math.random().toString(36).slice(2, 18) + Date.now().toString(36);
+            localStorage.setItem("hwid", hwid);
+            return hwid;
+        }
+
+        // 获取Roblox ID（从URL参数获取，由Roblox跳转时携带）
+        const urlParams = new URLSearchParams(window.location.search);
+        const ROBLOX_ID = urlParams.get("robloxId") || "未知用户";
+
+        // 初始化广告链接（携带参数和回调）
+        window.onload = function() {
+            const hwid = getHWID();
+            // Step1广告链接
+            document.getElementById("ad1-link").href = `${LOOTSLAB_AD_URL}?hwid=${hwid}&robloxId=${ROBLOX_ID}&callback=${PAGES_URL}?step=1&source=step1`;
+            // Step2广告链接
+            document.getElementById("ad2-link").href = `${LINKVERTISE_AD2_URL}?hwid=${hwid}&robloxId=${ROBLOX_ID}&callback=${PAGES_URL}?step=2&source=step2`;
+            // Step3广告链接
+            document.getElementById("ad3-link").href = `${LINKVERTISE_AD3_URL}?hwid=${hwid}&robloxId=${ROBLOX_ID}&callback=${PAGES_URL}?step=3&source=step3`;
+
+            // 校验页面来源是否为广告回调
+            const source = urlParams.get("source");
+            const currentStep = urlParams.get("step");
+            if (source && currentStep) {
+                if (source !== `step${currentStep}`) {
+                    alert("请通过广告页面返回，否则无法完成验证");
+                    window.location.href = PAGES_URL;
+                }
+            }
+        };
+
+        // 校验步骤完成状态
+        async function checkStep(step) {
+            const hwid = getHWID();
+            const errorElement = document.getElementById(`error${step}`);
+            errorElement.textContent = "";
+
+            try {
+                const response = await fetch(`${WORKERS_URL}/verify-ad?step=${step}&hwid=${hwid}&robloxId=${ROBLOX_ID}`);
+                const result = await response.text();
+
+                if (response.ok) {
+                    if (step === 3) {
+                        // 完成所有步骤，生成卡密
+                        generateKey();
+                    } else {
+                        // 跳转到下一步
+                        document.getElementById(`step${step}`).classList.remove("active");
+                        document.getElementById(`step${step+1}`).classList.add("active");
+                        window.scrollTo(0, 0);
+                    }
+                } else {
+                    errorElement.textContent = `验证失败：${result}`;
+                }
+            } catch (err) {
+                errorElement.textContent = `网络错误：${err.message}`;
+            }
+        }
+
+        // 生成卡密
+        async function generateKey() {
+            const hwid = getHWID();
+            const keyDisplay = document.getElementById("key-display");
+
+            try {
+                const response = await fetch(`${WORKERS_URL}/generate-key`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        hwid: hwid,
+                        robloxId: ROBLOX_ID
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    keyDisplay.innerHTML = `<h2>卡密生成成功！</h2><p>你的卡密（12小时内有效）：</p><strong>${data.key}</strong><p>卡密网页会话10分钟后失效</p>`;
+                    // 隐藏所有步骤容器
+                    document.querySelectorAll(".step-container").forEach(container => {
+                        container.style.display = "none";
+                    });
+                } else {
+                    keyDisplay.textContent = `生成失败：${data.message || "请完成所有广告步骤"}`;
+                }
+            } catch (err) {
+                keyDisplay.textContent = `生成失败：${err.message}`;
+            }
+        }
+    </script>
 </body>
 </html>
-

@@ -24,6 +24,11 @@
             padding: 25px;
             border-radius: 10px;
             margin-bottom: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         .step-container.active {
             display: block;
@@ -43,6 +48,10 @@
             margin-bottom: 15px;
             cursor: pointer;
             pointer-events: auto;
+            transition: background 0.2s;
+        }
+        a:hover {
+            background: #2563eb;
         }
         button {
             background: #10b981;
@@ -52,6 +61,10 @@
             border-radius: 6px;
             cursor: pointer;
             font-size: 16px;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #059669;
         }
         button:disabled {
             background: #6b7280;
@@ -65,11 +78,18 @@
             font-size: 18px;
             word-break: break-all;
             color: #4ade80;
+            animation: fadeIn 0.3s ease;
         }
         .error-tip {
             color: #ef4444;
             margin-top: 10px;
             font-size: 14px;
+        }
+        .loading {
+            color: #60a5fa;
+            margin-top: 10px;
+            font-size: 14px;
+            display: none;
         }
     </style>
 </head>
@@ -79,7 +99,8 @@
         <h1>步骤1：完成Lootslab广告验证</h1>
         <a id="ad1-link" href="#" target="_blank">点击打开Lootslab广告</a>
         <br>
-        <button onclick="checkStep(1)">校验广告完成状态</button>
+        <button onclick="checkStep(1)">手动校验广告完成状态</button>
+        <div class="loading" id="loading1">正在校验状态...</div>
         <div class="error-tip" id="error1"></div>
     </div>
 
@@ -88,7 +109,8 @@
         <h1>步骤2：完成Linkvertise广告验证</h1>
         <a id="ad2-link" href="#" target="_blank">点击打开Linkvertise广告</a>
         <br>
-        <button onclick="checkStep(2)">校验广告完成状态</button>
+        <button onclick="checkStep(2)">手动校验广告完成状态</button>
+        <div class="loading" id="loading2">正在校验状态...</div>
         <div class="error-tip" id="error2"></div>
     </div>
 
@@ -97,7 +119,8 @@
         <h1>步骤3：完成Linkvertise广告验证</h1>
         <a id="ad3-link" href="#" target="_blank">点击打开Linkvertise广告</a>
         <br>
-        <button onclick="checkStep(3)">校验广告完成状态</button>
+        <button onclick="checkStep(3)">手动校验广告完成状态</button>
+        <div class="loading" id="loading3">正在校验状态...</div>
         <div class="error-tip" id="error3"></div>
     </div>
 
@@ -122,57 +145,87 @@
             return hwid;
         }
 
-        // 获取Roblox ID（从URL参数获取）
+        // 获取URL参数
         const urlParams = new URLSearchParams(window.location.search);
         const ROBLOX_ID = urlParams.get("robloxId") || "未知用户";
+        const source = urlParams.get("source");
+        const currentStep = urlParams.get("step");
+        const autoCheck = urlParams.get("autoCheck");
 
-        // 初始化广告链接（修复参数拼接：用&替换?）
+        // 初始化广告链接
         window.onload = function() {
             const hwid = getHWID();
-            // Step1广告链接：修复?和&的拼接问题
-            const ad1FinalUrl = `${LOOTSLAB_AD_URL}&hwid=${hwid}&robloxId=${ROBLOX_ID}&callback=${PAGES_URL}?step=1&source=step1`;
+            
+            // Step1广告链接（带自动校验参数）
+            const ad1FinalUrl = `${LOOTSLAB_AD_URL}&hwid=${hwid}&robloxId=${ROBLOX_ID}&callback=${PAGES_URL}?step=1&source=step1&autoCheck=1`;
             document.getElementById("ad1-link").href = ad1FinalUrl;
-            console.log("Step1广告链接：", ad1FinalUrl); // 调试日志
 
-            // Step2广告链接
-            const ad2FinalUrl = `${LINKVERTISE_AD2_URL}&hwid=${hwid}&robloxId=${ROBLOX_ID}&callback=${PAGES_URL}?step=2&source=step2`;
+            // Step2广告链接（带自动校验参数）
+            const ad2FinalUrl = `${LINKVERTISE_AD2_URL}&hwid=${hwid}&robloxId=${ROBLOX_ID}&callback=${PAGES_URL}?step=2&source=step2&autoCheck=1`;
             document.getElementById("ad2-link").href = ad2FinalUrl;
 
-            // Step3广告链接
-            const ad3FinalUrl = `${LINKVERTISE_AD3_URL}&hwid=${hwid}&robloxId=${ROBLOX_ID}&callback=${PAGES_URL}?step=3&source=step3`;
+            // Step3广告链接（带自动校验参数）
+            const ad3FinalUrl = `${LINKVERTISE_AD3_URL}&hwid=${hwid}&robloxId=${ROBLOX_ID}&callback=${PAGES_URL}?step=3&source=step3&autoCheck=1`;
             document.getElementById("ad3-link").href = ad3FinalUrl;
 
-            // 校验页面来源
-            const source = urlParams.get("source");
-            const currentStep = urlParams.get("step");
-            if (source && currentStep && source !== `step${currentStep}`) {
-                alert("请通过广告页面返回，否则无法完成验证");
-                window.location.href = PAGES_URL;
-            }
+            // 校验页面来源并执行自动校验
+            validateSourceAndAutoCheck();
         };
 
-        // 校验步骤完成状态
-        async function checkStep(step) {
+        // 验证来源并触发自动校验
+        function validateSourceAndAutoCheck() {
+            if (!source || !currentStep) return;
+
+            // 来源不合法则返回首页
+            if (source !== `step${currentStep}`) {
+                alert("请通过广告页面返回，否则无法完成验证");
+                window.location.href = PAGES_URL;
+                return;
+            }
+
+            // 自动校验开关开启则执行校验
+            if (autoCheck === "1") {
+                const stepNum = parseInt(currentStep);
+                checkStep(stepNum, true); // 标记为自动校验
+            }
+        }
+
+        // 校验步骤完成状态（isAuto：是否为自动校验）
+        async function checkStep(step, isAuto = false) {
             const hwid = getHWID();
+            const loadingElement = document.getElementById(`loading${step}`);
             const errorElement = document.getElementById(`error${step}`);
+            
+            // 重置状态
             errorElement.textContent = "";
+            loadingElement.style.display = "block";
 
             try {
+                // 调用Workers验证接口
                 const response = await fetch(`${WORKERS_URL}/verify-ad?step=${step}&hwid=${hwid}&robloxId=${ROBLOX_ID}`);
                 const result = await response.text();
+                loadingElement.style.display = "none";
 
                 if (response.ok) {
                     if (step === 3) {
-                        generateKey(); // 生成卡密
+                        // 完成所有步骤，生成卡密
+                        generateKey();
                     } else {
+                        // 跳转到下一步
                         document.getElementById(`step${step}`).classList.remove("active");
                         document.getElementById(`step${step+1}`).classList.add("active");
                         window.scrollTo(0, 0);
+                        
+                        // 自动校验时给出提示
+                        if (isAuto) {
+                            alert(`Step${step}验证成功，已为你跳转到Step${step+1}`);
+                        }
                     }
                 } else {
                     errorElement.textContent = `验证失败：${result}`;
                 }
             } catch (err) {
+                loadingElement.style.display = "none";
                 errorElement.textContent = `网络错误：${err.message}`;
             }
         }
@@ -181,6 +234,7 @@
         async function generateKey() {
             const hwid = getHWID();
             const keyDisplay = document.getElementById("key-display");
+            keyDisplay.textContent = "正在生成卡密...";
 
             try {
                 const response = await fetch(`${WORKERS_URL}/generate-key`, {
@@ -196,7 +250,14 @@
 
                 const data = await response.json();
                 if (response.ok) {
-                    keyDisplay.innerHTML = `<h2>卡密生成成功！</h2><p>你的卡密（12小时内有效）：</p><strong>${data.key}</strong><p>卡密网页会话10分钟后失效</p>`;
+                    keyDisplay.innerHTML = `
+                        <h2>卡密生成成功！</h2>
+                        <p>你的卡密（12小时内有效）：</p>
+                        <strong style="font-size: 20px;">${data.key}</strong>
+                        <p style="margin-top: 10px;">卡密网页会话10分钟后失效</p>
+                        <p style="margin-top: 5px; color: #9ca3af;">请复制卡密返回Roblox验证</p>
+                    `;
+                    // 隐藏所有步骤容器
                     document.querySelectorAll(".step-container").forEach(container => container.style.display = "none");
                 } else {
                     keyDisplay.textContent = `生成失败：${data.message || "请完成所有广告步骤"}`;

@@ -1,402 +1,221 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roblox 卡密生成系统</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: Arial, Helvetica, sans-serif;
-        }
-
-        body {
-            background-color: #121212;
-            color: #ffffff;
-            min-height: 100vh;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 500px;
-            background-color: #1e1e1e;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
-        }
-
-        h1 {
-            color: #64b5f6;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .input-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #bbbbbb;
-        }
-
-        input {
-            width: 100%;
-            padding: 10px;
-            background-color: #2d2d2d;
-            border: 1px solid #3d3d3d;
-            border-radius: 5px;
-            color: #ffffff;
-            font-size: 16px;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: #64b5f6;
-        }
-
-        input[readonly] {
-            background-color: #333333;
-            cursor: not-allowed;
-        }
-
-        .step-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin: 20px 0;
-        }
-
-        button {
-            padding: 12px;
-            background-color: #2196f3;
-            border: none;
-            border-radius: 5px;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        button:disabled {
-            background-color: #666666;
-            cursor: not-allowed;
-        }
-
-        button:hover:not(:disabled) {
-            background-color: #1976d2;
-        }
-
-        .status-box {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 5px;
-            background-color: #2d2d2d;
-            color: #ffffff;
-            min-height: 60px;
-            white-space: pre-wrap;
-        }
-
-        .success {
-            border-left: 4px solid #4caf50;
-        }
-
-        .error {
-            border-left: 4px solid #f44336;
-        }
-
-        .info {
-            border-left: 4px solid #2196f3;
-        }
-
-        .step-indicator {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-
-        .step-item {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background-color: #3d3d3d;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-
-        .step-item.completed {
-            background-color: #4caf50;
-        }
-
-        .step-item.active {
-            background-color: #2196f3;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Roblox 卡密生成系统（Step1）</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family: Arial, Helvetica, sans-serif; }
+    body{
+      background:#121212; color:#fff; min-height:100vh; padding:20px;
+      display:flex; flex-direction:column; align-items:center; gap:20px;
+    }
+    .container{
+      width:100%; max-width:500px; background:#1e1e1e; padding:25px;
+      border-radius:10px; box-shadow:0 0 15px rgba(0,0,0,.3);
+    }
+    h1{ color:#64b5f6; text-align:center; margin-bottom:20px; }
+    .input-group{ margin-bottom:15px; }
+    label{ display:block; margin-bottom:5px; color:#bbb; }
+    input{
+      width:100%; padding:10px; background:#2d2d2d; border:1px solid #3d3d3d;
+      border-radius:5px; color:#fff; font-size:16px;
+    }
+    input:focus{ outline:none; border-color:#64b5f6; }
+    input[readonly]{ background:#333; cursor:not-allowed; }
+    button{
+      width:100%; padding:12px; background:#2196f3; border:none; border-radius:5px;
+      color:#fff; font-size:16px; cursor:pointer; transition:.2s;
+      margin-top:10px;
+    }
+    button:disabled{ background:#666; cursor:not-allowed; }
+    button:hover:not(:disabled){ background:#1976d2; }
+    .status-box{
+      margin-top:15px; padding:15px; border-radius:5px; background:#2d2d2d;
+      min-height:60px; white-space:pre-wrap;
+      border-left:4px solid #2196f3;
+    }
+    .success{ border-left-color:#4caf50; }
+    .error{ border-left-color:#f44336; }
+    .info{ border-left-color:#2196f3; }
+    .step-indicator{
+      display:flex; justify-content:center; margin-bottom:15px;
+    }
+    .step-item{
+      width:30px; height:30px; border-radius:50%; background:#3d3d3d;
+      display:flex; align-items:center; justify-content:center; font-weight:bold;
+    }
+    .step-item.completed{ background:#4caf50; }
+    .step-item.active{ background:#2196f3; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Roblox 卡密生成系统</h1>
-        
-        <div class="step-indicator">
-            <div id="step1-indicator" class="step-item">1</div>
-            <div id="step2-indicator" class="step-item">2</div>
-            <div id="step3-indicator" class="step-item">3</div>
-        </div>
+  <div class="container">
+    <h1>卡密生成系统（仅Step1）</h1>
 
-        <div class="input-group">
-            <label for="robloxId">Roblox ID</label>
-            <input type="text" id="robloxId" placeholder="输入你的Roblox用户ID">
-        </div>
-
-        <div class="input-group">
-            <label for="hwid">设备ID (HWID)</label>
-            <input type="text" id="hwid" placeholder="输入设备唯一标识" readonly>
-        </div>
-
-        <div class="step-buttons">
-            <button id="step1-btn" disabled>Step 1: 完成Lootlabs广告</button>
-            <button id="step2-btn" disabled>Step 2: 完成Linkvertise广告</button>
-            <button id="step3-btn" disabled>Step 3: 完成Linkvertise广告</button>
-            <button id="generate-btn" disabled>生成卡密</button>
-        </div>
-
-        <div class="input-group" style="margin-top: 30px;">
-            <label for="key">验证卡密</label>
-            <input type="text" id="key" placeholder="输入生成的卡密">
-            <button id="verify-key-btn" style="margin-top: 10px;">验证卡密</button>
-        </div>
-
-        <div id="status-box" class="status-box info">
-            系统就绪，请先填写Roblox ID
-        </div>
+    <div class="step-indicator">
+      <div id="step1-indicator" class="step-item active">1</div>
     </div>
 
-    <script>
-        // Worker接口地址（替换为你的Worker域名）
-        const WORKER_URL = "https://r.check868.workers.dev";
-        // 广告域名配置（补全真实广告链接）
-        const AD_DOMAINS = {
-            lootlabs: "https://lootdest.org/s?Li5EAgHB",
-            linkvertise: "https://linkvertise.com"
-        };
+    <div class="input-group">
+      <label for="robloxId">Roblox ID</label>
+      <input id="robloxId" placeholder="输入你的Roblox用户ID" />
+    </div>
 
-        // DOM元素
-        const robloxIdInput = document.getElementById("robloxId");
-        const hwidInput = document.getElementById("hwid");
-        const statusBox = document.getElementById("status-box");
-        
-        const step1Btn = document.getElementById("step1-btn");
-        const step2Btn = document.getElementById("step2-btn");
-        const step3Btn = document.getElementById("step3-btn");
-        const generateBtn = document.getElementById("generate-btn");
-        const verifyKeyBtn = document.getElementById("verify-key-btn");
+    <div class="input-group">
+      <label for="hwid">设备ID (HWID)</label>
+      <input id="hwid" readonly />
+    </div>
 
-        const step1Indicator = document.getElementById("step1-indicator");
-        const step2Indicator = document.getElementById("step2-indicator");
-        const step3Indicator = document.getElementById("step3-indicator");
+    <button id="step1-btn" disabled>Step1：完成LootLabs广告</button>
+    <button id="generate-btn" disabled>生成卡密</button>
 
-        // =====================
-        // 核心优化：固定HWID（本地存储，仅首次生成）
-        // =====================
-        const initHWID = () => {
-            let hwid = localStorage.getItem('roblox_fixed_hwid');
-            if (!hwid) {
-                hwid = `hwid_${Math.random().toString(36).substr(2, 12)}`;
-                localStorage.setItem('roblox_fixed_hwid', hwid);
+    <div class="input-group" style="margin-top:20px;">
+      <label for="key">验证卡密</label>
+      <input id="key" placeholder="输入生成的卡密" />
+      <button id="verify-btn">验证卡密</button>
+    </div>
+
+    <div id="status" class="status-box info">系统就绪，请先填写Roblox ID</div>
+  </div>
+
+  <script>
+    // 改成你的 Worker 域名
+    const WORKER_URL = "https://r.check868.workers.dev";
+
+    // 你的 LootLabs 链接（保留你自己的）
+    const LOOTLABS_URL = "https://lootdest.org/s?Li5EAgHB";
+
+    const robloxIdInput = document.getElementById("robloxId");
+    const hwidInput = document.getElementById("hwid");
+    const statusBox = document.getElementById("status");
+    const step1Btn = document.getElementById("step1-btn");
+    const generateBtn = document.getElementById("generate-btn");
+    const verifyBtn = document.getElementById("verify-btn");
+    const step1Indicator = document.getElementById("step1-indicator");
+
+    function showStatus(msg, type="info"){
+      statusBox.textContent = msg;
+      statusBox.className = `status-box ${type}`;
+    }
+
+    function initHWID(){
+      let hwid = localStorage.getItem("roblox_fixed_hwid");
+      if(!hwid){
+        hwid = `hwid_${Math.random().toString(36).slice(2, 14)}`;
+        localStorage.setItem("roblox_fixed_hwid", hwid);
+      }
+      hwidInput.value = hwid;
+    }
+
+    function withParams(base, params){
+      const u = new URL(base);
+      Object.entries(params).forEach(([k,v]) => u.searchParams.set(k, v));
+      return u.toString();
+    }
+
+    async function verifyStep1(){
+      const robloxId = robloxIdInput.value.trim();
+      const hwid = hwidInput.value.trim();
+      const res = await fetch(`${WORKER_URL}/verify-ad?step=1&hwid=${encodeURIComponent(hwid)}&robloxId=${encodeURIComponent(robloxId)}`);
+      const data = await res.json();
+      return { ok: !!data.success, message: data.message || "" };
+    }
+
+    function openAdAndPoll(){
+      const robloxId = robloxIdInput.value.trim();
+      const hwid = hwidInput.value.trim();
+      if(!robloxId) return;
+
+      const finalUrl = withParams(LOOTLABS_URL, { hwid, robloxId });
+      const w = window.open(finalUrl, "_blank");
+      if(!w){
+        showStatus("弹窗被拦截：请允许本站弹窗后再试", "error");
+        return;
+      }
+
+      showStatus("已打开Step1广告页面，完成后自动检测…", "info");
+
+      let poll = 0;
+      const maxPoll = 60; // 3分钟
+      const timer = setInterval(async () => {
+        poll++;
+        try{
+          const r = await verifyStep1();
+          if(r.ok){
+            clearInterval(timer);
+            step1Indicator.classList.add("completed");
+            generateBtn.disabled = false;
+            showStatus("Step1 验证成功！现在可以生成卡密。", "success");
+          }else{
+            if(poll >= maxPoll){
+              clearInterval(timer);
+              showStatus("检测超时：请确认广告已完成，然后再点一次 Step1。", "error");
             }
-            hwidInput.value = hwid;
-        };
+          }
+        }catch(e){
+          clearInterval(timer);
+          showStatus("检测失败：" + e.message, "error");
+        }
+      }, 3000);
+    }
 
-        // 页面加载初始化
-        window.onload = () => {
-            initHWID();
-            // 监听Roblox ID输入，输入后启用Step1按钮
-            robloxIdInput.addEventListener('input', (e) => {
-                step1Btn.disabled = !e.target.value.trim();
-                if (e.target.value.trim()) {
-                    showStatus("请点击Step1按钮开始广告验证", "info");
-                } else {
-                    showStatus("系统就绪，请先填写Roblox ID", "info");
-                }
-            });
-        };
+    // 初始化
+    window.onload = () => {
+      initHWID();
+      robloxIdInput.addEventListener("input", () => {
+        const ok = !!robloxIdInput.value.trim();
+        step1Btn.disabled = !ok;
+        generateBtn.disabled = true;
+        step1Indicator.classList.remove("completed");
+        showStatus(ok ? "点击 Step1 开始验证" : "系统就绪，请先填写Roblox ID", "info");
+      });
+    };
 
-        // =====================
-        // 工具函数
-        // =====================
-        // 显示状态提示
-        const showStatus = (message, type = "info") => {
-            statusBox.textContent = message;
-            statusBox.className = `status-box ${type}`;
-        };
+    step1Btn.addEventListener("click", openAdAndPoll);
 
-        // 广告验证核心函数（带重试）
-        const verifyAdStep = async (step) => {
-            const robloxId = robloxIdInput.value.trim();
-            const hwid = hwidInput.value.trim();
-
-            if (!robloxId || !hwid) {
-                showStatus("请填写Roblox ID", "error");
-                return false;
-            }
-
-            try {
-                const response = await fetch(`${WORKER_URL}/verify-ad?step=${step}&hwid=${hwid}&robloxId=${robloxId}`, {
-                    headers: {
-                        "User-Agent": navigator.userAgent, // 携带移动端UA
-                        "Referer": window.location.href
-                    }
-                });
-                const data = await response.json();
-                return data.success;
-            } catch (err) {
-                showStatus(`验证失败：${err.message}`, "error");
-                return false;
-            }
-        };
-
-        // 打开广告并轮询验证
-        const openAdAndPoll = (step, adUrl) => {
-            const robloxId = robloxIdInput.value.trim();
-            const hwid = hwidInput.value.trim();
-
-            if (!robloxId || !hwid) return;
-
-            // 打开广告页面
-            window.open(`${adUrl}&hwid=${hwid}&robloxId=${robloxId}`, "_blank");
-            showStatus(`已打开Step${step}广告页面，完成后自动验证...`, "info");
-
-            // 轮询验证（最多轮询60次，约3分钟）
-            let pollCount = 0;
-            const maxPoll = 60;
-            const interval = setInterval(async () => {
-                pollCount++;
-                const success = await verifyAdStep(step);
-                
-                if (success) {
-                    clearInterval(interval);
-                    showStatus(`Step${step}广告验证成功！`, "success");
-                    // 更新步骤指示器
-                    document.getElementById(`step${step}-indicator`).classList.add("completed");
-                    // 解锁下一步
-                    if (step === 1) {
-                        step2Btn.disabled = false;
-                        step2Indicator.classList.add("active");
-                    } else if (step === 2) {
-                        step3Btn.disabled = false;
-                        step3Indicator.classList.add("active");
-                    } else if (step === 3) {
-                        generateBtn.disabled = false;
-                        showStatus("所有广告验证完成，可生成卡密！", "success");
-                    }
-                } else if (pollCount >= maxPoll) {
-                    clearInterval(interval);
-                    showStatus(`Step${step}广告验证超时，请手动完成广告后重试`, "error");
-                }
-            }, 3000);
-        };
-
-        // =====================
-        // 步骤按钮逻辑
-        // =====================
-        // Step1：Lootlabs广告
-        step1Btn.addEventListener("click", () => {
-            openAdAndPoll(1, AD_DOMAINS.lootlabs);
+    generateBtn.addEventListener("click", async () => {
+      const robloxId = robloxIdInput.value.trim();
+      const hwid = hwidInput.value.trim();
+      try{
+        const res = await fetch(`${WORKER_URL}/generate-key`, {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({ hwid, robloxId })
         });
+        const data = await res.json();
+        if(res.ok){
+          document.getElementById("key").value = data.key;
+          showStatus(`卡密生成成功：${data.key}\n过期时间：${new Date(data.expireTime).toLocaleString()}`, "success");
+        }else{
+          showStatus("生成失败：" + (data.message || "未知错误"), "error");
+        }
+      }catch(e){
+        showStatus("生成失败：" + e.message, "error");
+      }
+    });
 
-        // Step2：Linkvertise广告
-        step2Btn.addEventListener("click", () => {
-            const adUrl = `${AD_DOMAINS.linkvertise}/${CONFIG.linkvertise.step2LinkId}`; // 补全Step2 ID
-            openAdAndPoll(2, adUrl);
+    verifyBtn.addEventListener("click", async () => {
+      const robloxId = robloxIdInput.value.trim();
+      const hwid = hwidInput.value.trim();
+      const key = document.getElementById("key").value.trim();
+      if(!robloxId || !key){
+        showStatus("请填写 Roblox ID 和 卡密", "error");
+        return;
+      }
+      try{
+        const res = await fetch(`${WORKER_URL}/verify-key`, {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({ key, robloxId, hwid })
         });
-
-        // Step3：Linkvertise广告
-        step3Btn.addEventListener("click", () => {
-            const adUrl = `${AD_DOMAINS.linkvertise}/${CONFIG.linkvertise.step3LinkId}`; // 补全Step3 ID
-            openAdAndPoll(3, adUrl);
-        });
-
-        // 生成卡密
-        generateBtn.addEventListener("click", async () => {
-            const robloxId = robloxIdInput.value.trim();
-            const hwid = hwidInput.value.trim();
-
-            if (!robloxId || !hwid) {
-                showStatus("请填写Roblox ID", "error");
-                return;
-            }
-
-            try {
-                const response = await fetch(`${WORKER_URL}/generate-key`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "User-Agent": navigator.userAgent
-                    },
-                    body: JSON.stringify({ hwid, robloxId })
-                });
-
-                const data = await response.json();
-                if (response.ok) {
-                    showStatus(`卡密生成成功：${data.key}\n过期时间：${new Date(data.expireTime).toLocaleString()}`, "success");
-                    document.getElementById("key").value = data.key;
-                } else {
-                    showStatus(`生成失败：${data.message}`, "error");
-                }
-            } catch (err) {
-                showStatus(`生成失败：${err.message}`, "error");
-            }
-        });
-
-        // 验证卡密
-        verifyKeyBtn.addEventListener("click", async () => {
-            const robloxId = robloxIdInput.value.trim();
-            const key = document.getElementById("key").value.trim();
-
-            if (!robloxId || !key) {
-                showStatus("请填写Roblox ID和卡密", "error");
-                return;
-            }
-
-            try {
-                const response = await fetch(`${WORKER_URL}/verify-key`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "User-Agent": navigator.userAgent
-                    },
-                    body: JSON.stringify({ key, robloxId })
-                });
-
-                const data = await response.json();
-                if (data.valid) {
-                    showStatus("卡密验证有效！", "success");
-                } else {
-                    showStatus(`卡密验证失败：${data.message}`, "error");
-                }
-            } catch (err) {
-                showStatus(`验证失败：${err.message}`, "error");
-            }
-        });
-
-        // 广告ID配置（与Worker保持一致）
-        const CONFIG = {
-            linkvertise: {
-                step2LinkId: "2615052",
-                step3LinkId: "2615053"
-            }
-        };
-    </script>
+        const data = await res.json();
+        showStatus(data.valid ? "卡密有效！" : ("无效：" + (data.message || "")), data.valid ? "success":"error");
+      }catch(e){
+        showStatus("验证失败：" + e.message, "error");
+      }
+    });
+  </script>
 </body>
 </html>
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roblox Key System - API版</title>
+    <title>Roblox Key System - 自动验证版</title>
     <style>
         * {
             margin: 0;
@@ -17,6 +17,14 @@
             padding: 20px;
             max-width: 600px;
             margin: 0 auto;
+        }
+        .guide-tip {
+            background: #2563eb;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.5;
         }
         .step-container {
             display: none;
@@ -98,33 +106,38 @@
     </style>
 </head>
 <body>
+    <!-- 操作指引 -->
+    <div class="guide-tip">
+        <strong>操作指引：</strong>点击广告链接完成任务后，页面会自动返回并校验，无需手动操作～
+    </div>
+
     <!-- 步骤1：Lootslab广告 -->
     <div id="step1" class="step-container active">
         <h1>步骤1：完成Lootslab广告验证</h1>
-        <a id="ad1-link" href="https://loot-link.com/s?G02Nvp4U" target="_blank">点击打开Lootslab广告</a>
-        <p class="tip-text">完成广告后点击下方按钮校验</p>
-        <button onclick="checkStep(1)">校验广告完成状态</button>
-        <div class="loading" id="loading1">正在校验广告状态...</div>
+        <a id="ad1-link" href="#" target="_blank">点击打开Lootslab广告</a>
+        <p class="tip-text">完成广告后页面将自动返回并校验</p>
+        <button onclick="checkStep(1)" style="display: none;">手动校验广告完成状态</button>
+        <div class="loading" id="loading1">正在自动校验广告状态...</div>
         <div class="error-tip" id="error1"></div>
     </div>
 
     <!-- 步骤2：Linkvertise广告 -->
     <div id="step2" class="step-container">
         <h1>步骤2：完成Linkvertise广告验证</h1>
-        <a id="ad2-link" href="你的Linkvertise Step2广告链接" target="_blank">点击打开Linkvertise广告</a>
-        <p class="tip-text">完成广告后点击下方按钮校验</p>
-        <button onclick="checkStep(2)">校验广告完成状态</button>
-        <div class="loading" id="loading2">正在校验广告状态...</div>
+        <a id="ad2-link" href="#" target="_blank">点击打开Linkvertise广告</a>
+        <p class="tip-text">完成广告后页面将自动返回并校验</p>
+        <button onclick="checkStep(2)" style="display: none;">手动校验广告完成状态</button>
+        <div class="loading" id="loading2">正在自动校验广告状态...</div>
         <div class="error-tip" id="error2"></div>
     </div>
 
     <!-- 步骤3：Linkvertise广告 -->
     <div id="step3" class="step-container">
         <h1>步骤3：完成Linkvertise广告验证</h1>
-        <a id="ad3-link" href="你的Linkvertise Step3广告链接" target="_blank">点击打开Linkvertise广告</a>
-        <p class="tip-text">完成广告后点击下方按钮校验</p>
-        <button onclick="checkStep(3)">校验广告完成状态</button>
-        <div class="loading" id="loading3">正在校验广告状态...</div>
+        <a id="ad3-link" href="#" target="_blank">点击打开Linkvertise广告</a>
+        <p class="tip-text">完成广告后页面将自动返回并校验</p>
+        <button onclick="checkStep(3)" style="display: none;">手动校验广告完成状态</button>
+        <div class="loading" id="loading3">正在自动校验广告状态...</div>
         <div class="error-tip" id="error3"></div>
     </div>
 
@@ -134,13 +147,41 @@
     <script>
         // 配置项
         const WORKERS_URL = "https://r.check868.workers.dev"; // 你的Workers域名
+        const LOOTSLAB_AD_URL = "https://lootdest.org/s?Li5EAgHB"; // 新的Lootslabs自动跳转链接
         const LINKVERTISE_AD2_URL = "你的Linkvertise Step2广告链接"; // 替换为实际链接
         const LINKVERTISE_AD3_URL = "你的Linkvertise Step3广告链接"; // 替换为实际链接
+        const PAGES_URL = "https://zisandchuck.github.io"; // 前端页面域名
+
+        // 获取URL参数
+        const urlParams = new URLSearchParams(window.location.search);
+        const step = urlParams.get("step");
+        const source = urlParams.get("source");
+        const autoCheck = urlParams.get("autoCheck");
+        const ROBLOX_ID = urlParams.get("robloxId") || "未知用户";
 
         // 初始化广告链接
         window.onload = function() {
-            document.getElementById("ad2-link").href = LINKVERTISE_AD2_URL;
-            document.getElementById("ad3-link").href = LINKVERTISE_AD3_URL;
+            // Step1广告链接（带自动校验参数）
+            const ad1FinalUrl = `${LOOTSLAB_AD_URL}&callback=${PAGES_URL}?step=1&source=step1&autoCheck=1`;
+            document.getElementById("ad1-link").href = ad1FinalUrl;
+
+            // Step2广告链接
+            const ad2FinalUrl = `${LINKVERTISE_AD2_URL}&callback=${PAGES_URL}?step=2&source=step2&autoCheck=1`;
+            document.getElementById("ad2-link").href = ad2FinalUrl;
+
+            // Step3广告链接
+            const ad3FinalUrl = `${LINKVERTISE_AD3_URL}&callback=${PAGES_URL}?step=3&source=step3&autoCheck=1`;
+            document.getElementById("ad3-link").href = ad3FinalUrl;
+
+            // 自动校验逻辑
+            if (step && source && autoCheck === "1" && source === `step${step}`) {
+                const stepNum = parseInt(step);
+                document.getElementById(`loading${stepNum}`).style.display = "block";
+                // 延迟1秒校验，确保广告状态同步
+                setTimeout(() => {
+                    checkStep(stepNum, true);
+                }, 1000);
+            }
         };
 
         // 获取设备HWID
@@ -153,41 +194,44 @@
             return hwid;
         }
 
-        // 获取Roblox ID（从URL参数）
-        const urlParams = new URLSearchParams(window.location.search);
-        const ROBLOX_ID = urlParams.get("robloxId") || "未知用户";
-
         // 校验广告完成状态
-        async function checkStep(step) {
+        async function checkStep(step, isAuto = false) {
             const hwid = getHWID();
             const loadingEl = document.getElementById(`loading${step}`);
             const errorEl = document.getElementById(`error${step}`);
             
-            // 重置状态
             errorEl.textContent = "";
-            loadingEl.style.display = "block";
+            if (!isAuto) loadingEl.style.display = "block";
 
             try {
-                const response = await fetch(`${WORKERS_URL}/verify-ad?step=${step}&hwid=${hwid}&robloxId=${ROBLOX_ID}`);
+                const response = await fetch(`${WORKERS_URL}/verify-ad?step=${step}&hwid=${hwid}&robloxId=${ROBLOX_ID}`, {
+                    headers: {
+                        "Referer": isAuto ? (step === 1 ? LOOTSLAB_AD_URL : LINKVERTISE_AD2_URL) : PAGES_URL
+                    }
+                });
                 const result = await response.text();
                 loadingEl.style.display = "none";
 
                 if (response.ok) {
                     if (step === 3) {
-                        generateKey(); // 生成卡密
+                        generateKey();
                     } else {
-                        // 跳转到下一步
                         document.getElementById(`step${step}`).classList.remove("active");
                         document.getElementById(`step${step+1}`).classList.add("active");
                         window.scrollTo(0, 0);
-                        alert(`Step${step}广告验证成功，已跳转到Step${step+1}`);
+                        if (isAuto) alert(`Step${step}广告验证成功，已跳转到Step${step+1}`);
                     }
+                } else if (response.status === 403) {
+                    errorEl.textContent = "验证失败：非法访问，需从广告页面跳转";
                 } else {
                     errorEl.textContent = `验证失败：${result}`;
+                    // 显示手动校验按钮
+                    document.querySelector(`#step${step} button`).style.display = "inline-block";
                 }
             } catch (err) {
                 loadingEl.style.display = "none";
                 errorEl.textContent = `网络错误：${err.message}`;
+                document.querySelector(`#step${step} button`).style.display = "inline-block";
             }
         }
 
@@ -218,7 +262,6 @@
                         <p style="margin-top: 10px;">卡密仅可使用一次，有效期12小时</p>
                         <p style="margin-top: 5px; color: #9ca3af;">复制卡密返回Roblox完成验证</p>
                     `;
-                    // 隐藏所有步骤
                     document.querySelectorAll(".step-container").forEach(el => el.style.display = "none");
                 } else {
                     keyDisplay.textContent = `生成失败：${data.message || "请完成所有广告步骤"}`;
